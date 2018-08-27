@@ -60,42 +60,43 @@ class MerchantSuite
 
 			//Transaction Details
 			$txn = new Transaction();
-			$txn->setTestMode(isset($transactionData['testMode']) ? $transactionData['testMode'] : FALSE);
-			$txn->setAction(isset($transactionData['action']) ? $transactionData['action'] : Actions::Payment);
+			$txn->setTestMode(isset($transactionData['TestMode']) ? $transactionData['TestMode'] : FALSE);
+			$txn->setAction(isset($transactionData['Action']) ? $transactionData['Action'] : Actions::Payment);
 			$txn->setCredentials($credentials);
 			$txn->setAmount($amount * 100);
 			$txn->setCurrency($currency);
-			if (isset($transactionData['internalNote'])) {
+			if (isset($transactionData['InternalNote'])) {
 				$txn->setInternalNote($transactionData['InternalNote']);
 			}
-			if (isset($transactionData['reference1'])) {
+			if (isset($transactionData['Reference1'])) {
 				$txn->setReference1($transactionData['Reference1']);
 			}
-			if (isset($transactionData['reference2'])) {
-				$txn->setReference2($transactionData['Reference2']);
+			if (isset($transactionData['Reference1'])) {
+				$txn->setReference2($transactionData['Reference1']);
 			}
-			if (isset($transactionData['reference3'])) {
-				$txn->setReference3($transactionData['Reference3']);
+			if (isset($transactionData['Reference1'])) {
+				$txn->setReference3($transactionData['Reference1']);
 			}
-			$txn->setStoreCard(isset($transactionData['storeCard']) ? $transactionData['storeCard'] : FALSE);
-			$txn->setSubType(isset($transactionData['subType']) ? $transactionData['subType'] : "single"); //single or recurring
+			$txn->setStoreCard(isset($transactionData['StoreCard']) ? $transactionData['StoreCard'] : FALSE);
+			$txn->setSubType(isset($transactionData['SubType']) ? $transactionData['SubType'] : "single"); //single or recurring
 			if (isset($transactionData['TokenisationMode'])) {
 				$txn->setTokenisationMode($transactionData['TokenisationMode']);
 			}
 			$txn->setType(TransactionType::Internet);
+			$txn->setTimeout(isset($transactionData['timeout']) ? $transactionData['timeout'] : 93121);
 
 			//Set Card Details
-			if (isset($transactionData['cardDetails'])) {
+			if (isset($transactionData['CardDetails'])) {
 
 				$cardDetails = new CardDetails();
 
-				if (isset($transactionData['cardDetails']['token'])) {
-					$cardDetails->setCardNumber($transactionData['cardDetails']['token']);
+				if (isset($transactionData['CardDetails']['Token'])) {
+					$cardDetails->setCardNumber($transactionData['CardDetails']['Token']);
 				} else {
-					$cardDetails->setCardHolderName($transactionData['cardDetails']['name']);
-					$cardDetails->setCardNumber($transactionData['cardDetails']['number']);
-					$cardDetails->setCVN($transactionData['cardDetails']['cvv']);
-					$cardDetails->setExpiryDate($transactionData['cardDetails']['expixyDate']);
+					$cardDetails->setCardHolderName($transactionData['CardDetails']['Name']);
+					$cardDetails->setCardNumber($transactionData['CardDetails']['Number']);
+					$cardDetails->setCVN($transactionData['CardDetails']['CVV']);
+					$cardDetails->setExpiryDate($transactionData['CardDetails']['ExpixyDate']);
 				}
 
 				$txn->setCardDetails($cardDetails);
@@ -157,8 +158,6 @@ class MerchantSuite
 
 			#$txn->setFraudScreeningRequest($fraudScreening);
 
-			$txn->setTimeout(93121);
-
 			$txn_response = $txn->submit();
 
 			return $txn_response;
@@ -169,3 +168,4 @@ class MerchantSuite
 
 
 }
+?>
