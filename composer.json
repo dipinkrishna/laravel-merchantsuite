@@ -20,14 +20,6 @@
       "DK\\MerchantSuite\\": "src"
     }
   },
-  "extra": {
-    "component": "implementation",
-    "laravel": {
-      "providers": [
-        "DK\\MerchantSuite\\MerchantSuiteProvider"
-      ]
-    }
-  },
   "authors": [
     {
       "name": "Dipin Krishna",

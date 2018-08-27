@@ -7,27 +7,33 @@
 
 namespace DK\MerchantSuite;
 
+use Illuminate\Support\Facades\Config;
+
 class MerchantSuite
 {
-	protected $username;
-	protected $password;
-	protected $membershipID;
-	protected $mode;
+	private $username;
+	private $password;
+	private $membershipID;
+	private $mode;
 
-	public function __construct($username, $password, $membershipID, $mode = 'live') {
+	public function __construct($mode = 'live') {
 
-		$this->username = $username;
-		$this->password = $password;
-		$this->membershipID = $membershipID;
-		$this->mode = $mode;
+		$config = Config::get('services.merchantsuite');
+		$this->username = isset($config['username']) ? $config['username'] : null;
+		$this->password = isset($config['password']) ? $config['password'] : null;
+		$this->membershipID = isset($config['membershipID']) ? $config['membershipID'] : null;
+		if($mode) {
+			$this->mode = isset($mode) && $mode == 'test' ? Mode::UAT : Mode::Live;
+		} else {
+			$this->mode = isset($config['mode']) && $config['mode'] == 'test' ? Mode::UAT : Mode::Live;
+		}
 
 	}
 
 	public function getCredentials() {
-		$mode = isset($this->mode) && $this->mode == 'test' ? Mode::UAT : Mode::Live;
 
 		URLDirectory::setBaseURL("reserved", "https://www.merchantsuite.com/api/v2");
-		$credentials = new Credentials($this->username, $this->password, $this->membershipID, $mode);
+		$credentials = new Credentials($this->username, $this->password, $this->membershipID, $this->mode);
 
 		return $credentials;
 	}
