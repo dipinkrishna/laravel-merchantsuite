@@ -1,0 +1,38 @@
+{
+  "name": "laravel-merchantsuite",
+  "description": "MerchantSuite API for Laravel",
+  "keywords": [
+    "php",
+    "merchantsuite",
+    "laravel",
+    "dipinkrishna"
+  ],
+  "type": "library",
+  "version": "1.0.0",
+  "license": "MIT",
+  "require": {
+    "php": ">=5.6.0",
+    "illuminate/support": "5.6.*",
+    "nategood/httpful": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "DK\\MerchantSuite\\": "src"
+    }
+  },
+  "extra": {
+    "component": "implementation",
+    "laravel": {
+      "providers": [
+        "DK\\MerchantSuite\\MerchantSuiteProvider"
+      ]
+    }
+  },
+  "authors": [
+    {
+      "name": "Dipin Krishna",
+      "email": "mail@dipinkrishna.com"
+    }
+  ],
+  "minimum-stability": "stable"
+}
