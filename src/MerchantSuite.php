@@ -60,8 +60,8 @@ class MerchantSuite
 
 			//Transaction Details
 			$txn = new Transaction();
-			$txn->setTestMode(FALSE);
-			$txn->setAction(Actions::Payment);
+			$txn->setTestMode(isset($transactionData['testMode']) ? $transactionData['testMode'] : FALSE);
+			$txn->setAction(isset($transactionData['action']) ? $transactionData['action'] : Actions::Payment);
 			$txn->setCredentials($credentials);
 			$txn->setAmount($amount * 100);
 			$txn->setCurrency($currency);
@@ -77,10 +77,12 @@ class MerchantSuite
 			if (isset($transactionData['reference3'])) {
 				$txn->setReference3($transactionData['Reference3']);
 			}
-			$txn->setStoreCard(FALSE);
-			$txn->setSubType("single");
+			$txn->setStoreCard(isset($transactionData['storeCard']) ? $transactionData['storeCard'] : FALSE);
+			$txn->setSubType(isset($transactionData['subType']) ? $transactionData['subType'] : "single"); //single or recurring
+			if (isset($transactionData['TokenisationMode'])) {
+				$txn->setTokenisationMode($transactionData['TokenisationMode']);
+			}
 			$txn->setType(TransactionType::Internet);
-
 
 			//Set Card Details
 			if (isset($transactionData['cardDetails'])) {
@@ -154,8 +156,6 @@ class MerchantSuite
 			#$fraudScreening->setDeviceFingerprint("0400l1oURA1kJHkN<1900 characters removed>+ZKFOkdULYCXsUu0Oxk=");
 
 			#$txn->setFraudScreeningRequest($fraudScreening);
-
-			#$txn->setTokenisationMode(3);
 
 			$txn->setTimeout(93121);
 
