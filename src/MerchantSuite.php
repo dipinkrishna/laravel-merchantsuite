@@ -167,5 +167,106 @@ class MerchantSuite
 	}
 
 
+	/*
+	 * Usage:
+	 *
+	 * addToken(
+	 * 			array(
+	 * 				'CardNumber' => '1111111111111111',
+	 * 				'CardHolderName' => 'Name on the Card',
+	 * 				'ExpirtDate' => 'MMYY'
+	 * 			)
+	 * 	);
+	 *
+	 */
+	public function addToken($cardDetails) {
+
+		$return_response = array(
+			'success' => false
+		);
+
+		if ($cardDetails) {
+
+			$credentials = $this->getCredentials();
+
+			$txn = new AddToken();
+			$cardDetails = new CardDetails();
+
+			$txn->setCredentials($credentials);
+
+			$cardDetails->setCardNumber($cardDetails['CardNumber']);
+			$cardDetails->setCardHolderName($cardDetails['CardHolderName']);
+			$cardDetails->setExpiryDate($cardDetails['ExpiryDate']);
+
+			$txn->setCardDetails($cardDetails);
+
+			$txn->setEmailAddress($cardDetails['EmailAddress']);
+			$txn->setReference1($cardDetails['Reference1']);
+			$txn->setReference2($cardDetails['Reference2']);
+			$txn->setReference3($cardDetails['Reference3']);
+
+			$response = $txn->submit();
+
+			//APIResponse
+			$apiResponse = $response->getAPIResponse(); // returns an object of type APIResponse
+			//$apiResponse->getResponseCode(); // returns an integer
+			//$apiResponse->getResponseText(); // returns a string
+			//$apiResponse->isSuccessful(); // returns a boolean
+
+			if($apiResponse->isSuccessful())
+			{
+
+				$responseDetails = array();
+
+				//TokenResp
+				$cardDetails = $response->getCardDetails(); // returns an object of type CardDetails
+				if(isset($cardDetails))
+				{
+					$responseDetails['ExpiryDate'] = $cardDetails->getExpiryDate(); // returns a string
+					$responseDetails['MaskedCardNumber'] = $cardDetails->getMaskedCardNumber(); // returns a string
+					$responseDetails['CardHolderName'] = $cardDetails->getCardHolderName(); // returns a string
+					$responseDetails['Category'] = $cardDetails->getCategory(); // returns a string
+					$responseDetails['Issuer'] = $cardDetails->getIssuer(); // returns a string
+					$responseDetails['IssuerCountryCode'] = $cardDetails->getIssuerCountryCode(); // returns a string
+					$responseDetails['Localisation'] = $cardDetails->getLocalisation(); // returns a string
+					$responseDetails['SubType'] = $cardDetails->getSubType(); // returns a string
+				}
+
+				$bankAccountDetails = $response->getBankAccountDetails(); // returns an object of type BankAccountDetails
+				if(isset($bankAccountDetails))
+				{
+					$responseDetails['AccountName'] = $bankAccountDetails->getAccountName(); // returns a string
+					$responseDetails['AccountNumber'] = $bankAccountDetails->getAccountNumber(); // returns a string
+					$responseDetails['BsbNumber'] = $bankAccountDetails->getBsbNumber(); // returns a string
+					$responseDetails['TruncatedAccountNumber'] = $bankAccountDetails->getTruncatedAccountNumber(); // returns a string
+				}
+
+				$responseDetails['CardType'] = $response->getCardType(); // returns a string
+				$responseDetails['Reference1'] = $response->getReference1(); // returns a string
+				$responseDetails['Reference2'] = $response->getReference2(); // returns a string
+				$responseDetails['Reference3'] = $response->getReference3(); // returns a string
+				$responseDetails['EmailAddress'] = $response->getEmailAddress(); // returns a string
+				$responseDetails['Token'] = $response->getToken(); // returns a string
+
+				$return_response = array(
+					'success' => true,
+					'details' => $responseDetails
+				);
+
+			} else {
+
+				$return_response['error'] = $apiResponse->getResponseText();
+			}
+
+		} else {
+			$return_response['error'] = 'No Card Details Provided';
+		}
+
+		return $return_response;
+
+	}
+
+
 }
+
 ?>
