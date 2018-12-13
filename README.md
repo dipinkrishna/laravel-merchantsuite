@@ -7,7 +7,7 @@ Add the package to your composer.json and run composer update.
 
 <pre>
 "require": {
-    "dipinkrishna/laravel-merchantsuite": "^v1.0.1"
+    "dipinkrishna/laravel-merchantsuite": "^v1.0.6"
 },
 </pre>
 or installed with composer

@@ -235,19 +235,6 @@ class MerchantSuite
 					$responseDetails['ExpiryDate'] = $cardDetails->getExpiryDate(); // returns a string
 					$responseDetails['MaskedCardNumber'] = $cardDetails->getMaskedCardNumber(); // returns a string
 					$responseDetails['CardHolderName'] = $cardDetails->getCardHolderName(); // returns a string
-					$responseDetails['Category'] = $cardDetails->getCategory(); // returns a string
-					$responseDetails['Issuer'] = $cardDetails->getIssuer(); // returns a string
-					$responseDetails['IssuerCountryCode'] = $cardDetails->getIssuerCountryCode(); // returns a string
-					$responseDetails['Localisation'] = $cardDetails->getLocalisation(); // returns a string
-					$responseDetails['SubType'] = $cardDetails->getSubType(); // returns a string
-				}
-
-				$bankAccountDetails = $response->getBankAccountDetails(); // returns an object of type BankAccountDetails
-				if (isset($bankAccountDetails)) {
-					$responseDetails['AccountName'] = $bankAccountDetails->getAccountName(); // returns a string
-					$responseDetails['AccountNumber'] = $bankAccountDetails->getAccountNumber(); // returns a string
-					$responseDetails['BsbNumber'] = $bankAccountDetails->getBsbNumber(); // returns a string
-					$responseDetails['TruncatedAccountNumber'] = $bankAccountDetails->getTruncatedAccountNumber(); // returns a string
 				}
 
 				$responseDetails['CardType'] = $response->getCardType(); // returns a string
