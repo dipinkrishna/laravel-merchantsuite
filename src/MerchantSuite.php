@@ -203,10 +203,18 @@ class MerchantSuite
 
 			$txn->setCardDetails($cardDetails);
 
-			$txn->setEmailAddress($cardInfo['EmailAddress']);
-			$txn->setReference1($cardInfo['Reference1']);
-			$txn->setReference2($cardInfo['Reference2']);
-			$txn->setReference3($cardInfo['Reference3']);
+			if (isset($cardInfo['EmailAddress'])) {
+				$txn->setEmailAddress($cardInfo['EmailAddress']);
+			}
+			if (isset($cardInfo['Reference1'])) {
+				$txn->setReference1($cardInfo['Reference1']);
+			}
+			if (isset($cardInfo['Reference2'])) {
+				$txn->setReference2($cardInfo['Reference2']);
+			}
+			if (isset($cardInfo['Reference3'])) {
+				$txn->setReference3($cardInfo['Reference3']);
+			}
 
 			$response = $txn->submit();
 
@@ -216,16 +224,14 @@ class MerchantSuite
 			//$apiResponse->getResponseText(); // returns a string
 			//$apiResponse->isSuccessful(); // returns a boolean
 
-			if($apiResponse->isSuccessful())
-			{
+			if ($apiResponse->isSuccessful()) {
 
 				$responseDetails = array();
 
 				//TokenResp
 				$cardDetails = $response->getCardDetails(); // returns an object of type CardDetails
 
-				if(isset($cardDetails))
-				{
+				if (isset($cardDetails)) {
 					$responseDetails['ExpiryDate'] = $cardDetails->getExpiryDate(); // returns a string
 					$responseDetails['MaskedCardNumber'] = $cardDetails->getMaskedCardNumber(); // returns a string
 					$responseDetails['CardHolderName'] = $cardDetails->getCardHolderName(); // returns a string
@@ -237,8 +243,7 @@ class MerchantSuite
 				}
 
 				$bankAccountDetails = $response->getBankAccountDetails(); // returns an object of type BankAccountDetails
-				if(isset($bankAccountDetails))
-				{
+				if (isset($bankAccountDetails)) {
 					$responseDetails['AccountName'] = $bankAccountDetails->getAccountName(); // returns a string
 					$responseDetails['AccountNumber'] = $bankAccountDetails->getAccountNumber(); // returns a string
 					$responseDetails['BsbNumber'] = $bankAccountDetails->getBsbNumber(); // returns a string
