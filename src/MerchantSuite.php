@@ -185,7 +185,7 @@ class MerchantSuite
 			'success' => false
 		);
 
-		if ($cardDetails) {
+		if ($cardInfo) {
 
 			$credentials = $this->getCredentials();
 
