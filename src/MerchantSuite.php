@@ -174,12 +174,12 @@ class MerchantSuite
 	 * 			array(
 	 * 				'CardNumber' => '1111111111111111',
 	 * 				'CardHolderName' => 'Name on the Card',
-	 * 				'ExpirtDate' => 'MMYY'
+	 * 				'ExpiryDate' => 'MMYY'
 	 * 			)
 	 * 	);
 	 *
 	 */
-	public function addToken($cardDetails) {
+	public function addToken($cardInfo) {
 
 		$return_response = array(
 			'success' => false
@@ -194,16 +194,19 @@ class MerchantSuite
 
 			$txn->setCredentials($credentials);
 
-			$cardDetails->setCardNumber($cardDetails['CardNumber']);
-			$cardDetails->setCardHolderName($cardDetails['CardHolderName']);
-			$cardDetails->setExpiryDate($cardDetails['ExpiryDate']);
+			$cardDetails->setCardNumber($cardInfo['CardNumber']);
+			$cardDetails->setCardHolderName($cardInfo['CardHolderName']);
+			$cardDetails->setExpiryDate($cardInfo['ExpiryDate']);
+			if (isset($cardInfo['CVN'])) {
+				$cardDetails->setCVN($cardInfo['CVN']);
+			}
 
 			$txn->setCardDetails($cardDetails);
 
-			$txn->setEmailAddress($cardDetails['EmailAddress']);
-			$txn->setReference1($cardDetails['Reference1']);
-			$txn->setReference2($cardDetails['Reference2']);
-			$txn->setReference3($cardDetails['Reference3']);
+			$txn->setEmailAddress($cardInfo['EmailAddress']);
+			$txn->setReference1($cardInfo['Reference1']);
+			$txn->setReference2($cardInfo['Reference2']);
+			$txn->setReference3($cardInfo['Reference3']);
 
 			$response = $txn->submit();
 
@@ -220,6 +223,7 @@ class MerchantSuite
 
 				//TokenResp
 				$cardDetails = $response->getCardDetails(); // returns an object of type CardDetails
+
 				if(isset($cardDetails))
 				{
 					$responseDetails['ExpiryDate'] = $cardDetails->getExpiryDate(); // returns a string
