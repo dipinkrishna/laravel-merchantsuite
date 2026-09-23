@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.1 - unreleased
+## 2.0.1 - 2026-09-23
 
 ### Fixed
 
@@ -36,6 +36,6 @@ Rewrite for MerchantSuite API v5 and Laravel 12/13. See [UPGRADING.md](UPGRADING
 - Test mode on by default; payments never retried
 - Weekly check against the published OpenAPI spec
 
-## 1.0.6 - 2018-12-12
+## 1.x
 
-Last 1.x release (API v2, Laravel 5.6).
+Removed. The 1.x releases (2018, API v2, Laravel 5.6) bundled MerchantSuite's own PHP SDK, which carried no licence, so their tags were deleted on 2026-09-23 and they are no longer installable.
