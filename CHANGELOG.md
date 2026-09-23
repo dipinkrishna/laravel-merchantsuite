@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 - unreleased
+## 2.0.0 - 2026-09-23
 
 Rewrite for MerchantSuite API v5 and Laravel 12/13. See [UPGRADING.md](UPGRADING.md).
 
