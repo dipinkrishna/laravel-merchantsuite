@@ -1,0 +1,25 @@
+name: spec drift
+
+# MerchantSuite has no public sandbox, so this weekly check against their
+# published OpenAPI spec is what catches API changes.
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - run: composer update --prefer-dist --no-interaction
+
+      - name: Compare against https://www.merchantsuite.com/rest/v5/swagger
+        run: php scripts/check-spec.php

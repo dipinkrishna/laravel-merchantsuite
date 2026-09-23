@@ -1,30 +1,66 @@
 {
-  "name": "dipinkrishna/laravel-merchantsuite",
-  "description": "MerchantSuite API for Laravel",
-  "keywords": [
-    "php",
-    "merchantsuite",
-    "laravel",
-    "dipinkrishna"
-  ],
-  "type": "library",
-  "version": "1.0.6",
-  "license": "MIT",
-  "require": {
-    "php": ">=5.6.0",
-    "illuminate/support": "5.6.*",
-    "nategood/httpful": "*"
-  },
-  "autoload": {
-    "psr-4": {
-      "DK\\MerchantSuite\\": "src"
-    }
-  },
-  "authors": [
-    {
-      "name": "Dipin Krishna",
-      "email": "mail@dipinkrishna.com"
-    }
-  ],
-  "minimum-stability": "stable"
+    "name": "dipinkrishna/laravel-merchantsuite",
+    "description": "Laravel client for the MerchantSuite (Linkly) payments API v5: transactions, tokens, AuthKey checkout and webhooks.",
+    "keywords": [
+        "laravel",
+        "merchantsuite",
+        "linkly",
+        "payments",
+        "payment-gateway",
+        "tokenisation"
+    ],
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Dipin Krishna",
+            "homepage": "https://dipinkrishna.com"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "illuminate/http": "^12.0|^13.0",
+        "illuminate/support": "^12.0|^13.0"
+    },
+    "require-dev": {
+        "guzzlehttp/guzzle": "^7.8",
+        "larastan/larastan": "^3.0",
+        "laravel/pint": "^1.18",
+        "orchestra/testbench": "^10.0|^11.0",
+        "pestphp/pest": "^4.0|^5.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "DK\\MerchantSuite\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "DK\\MerchantSuite\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "pest",
+        "lint": "pint --test",
+        "analyse": "phpstan analyse --memory-limit=1G",
+        "check-spec": "php scripts/check-spec.php"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "DK\\MerchantSuite\\MerchantSuiteServiceProvider"
+            ],
+            "aliases": {
+                "MerchantSuite": "DK\\MerchantSuite\\Facades\\MerchantSuite"
+            }
+        }
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
 }

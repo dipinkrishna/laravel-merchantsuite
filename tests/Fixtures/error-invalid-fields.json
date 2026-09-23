@@ -1,0 +1,16 @@
+{
+    "code": "InvalidFields",
+    "message": "One or more fields are invalid",
+    "details": [
+        {
+            "code": "Mandatory",
+            "message": "Crn1 is required",
+            "field": "crn1"
+        },
+        {
+            "code": "OutOfRange",
+            "message": "Amount must be greater than zero",
+            "field": "amount"
+        }
+    ]
+}

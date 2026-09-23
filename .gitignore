@@ -1,4 +1,6 @@
-
-\.idea/
-
-vendor/
+/vendor/
+/.idea/
+composer.lock
+.phpunit.result.cache
+/.phpunit.cache/
+.env
