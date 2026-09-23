@@ -3,11 +3,14 @@
 use DK\MerchantSuite\Data\CardDetails;
 use DK\MerchantSuite\Data\TransactionDetails;
 use DK\MerchantSuite\Enums\CardScheme;
+use DK\MerchantSuite\Exceptions\ApiException;
 use DK\MerchantSuite\Exceptions\AuthenticationException;
 use DK\MerchantSuite\Exceptions\ConfigurationException;
 use DK\MerchantSuite\Exceptions\ConnectionException;
+use DK\MerchantSuite\Exceptions\UnexpectedResponseException;
 use DK\MerchantSuite\Exceptions\ValidationException;
 use DK\MerchantSuite\Facades\MerchantSuite;
+use GuzzleHttp\Exception\RequestException as GuzzleRequestException;
 use Illuminate\Http\Client\ConnectionException as HttpConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -145,19 +148,90 @@ it('never retries a payment after a timeout', function () {
     $this->fail('Expected a ConnectionException.');
 });
 
-it('retries lookups on connection errors', function () {
+it('retries lookups twice on connection errors, then gives up', function () {
     $attempts = 0;
     Http::fake([BASE.'txns/1' => function () use (&$attempts) {
-        if (++$attempts < 2) {
-            throw new HttpConnectionException('reset');
-        }
+        $attempts++;
 
-        return Http::response(ms_fixture('txn-approved'));
+        throw new HttpConnectionException('reset');
     }]);
 
-    expect(MerchantSuite::transactions()->find('1')->isApproved())->toBeTrue()
-        ->and($attempts)->toBe(2);
+    try {
+        MerchantSuite::transactions()->find('1');
+    } catch (ConnectionException $e) {
+        expect($attempts)->toBe(3)->and($e->outcomeUnknown())->toBeFalse();
+
+        return;
+    }
+
+    $this->fail('Expected a ConnectionException.');
 });
+
+it('retries lookups on a 503 but not on a 400', function () {
+    Http::fake([
+        BASE.'txns/1' => Http::sequence()->push('', 503)->push(ms_fixture('txn-approved')),
+        BASE.'txns/2' => Http::response(ms_fixture('error-invalid-fields'), 400),
+    ]);
+
+    expect(MerchantSuite::transactions()->find('1')->isApproved())->toBeTrue();
+    expect(fn () => MerchantSuite::transactions()->find('2'))->toThrow(ValidationException::class);
+
+    Http::assertSentCount(3);
+});
+
+it('never retries a payment on a 503', function () {
+    Http::fake([BASE.'txns' => Http::response('', 503)]);
+
+    expect(fn () => MerchantSuite::transactions()->refund('1', 100, 'X'))->toThrow(ApiException::class);
+    Http::assertSentCount(1);
+});
+
+it('wraps raw guzzle transfer errors', function () {
+    Http::fake([BASE.'txns' => fn (Request $request) => throw new GuzzleRequestException('cURL error 56: Recv failure', $request->toPsrRequest())]);
+
+    try {
+        MerchantSuite::transactions()->refund('1', 100, 'X');
+    } catch (ConnectionException $e) {
+        expect($e->outcomeUnknown())->toBeTrue();
+
+        return;
+    }
+
+    $this->fail('Expected a ConnectionException.');
+});
+
+it('does not mistake an html page for a decline', function () {
+    Http::fake([BASE.'txns' => Http::response('<html>Scheduled maintenance</html>', 200, ['Content-Type' => 'text/html'])]);
+
+    MerchantSuite::transactions()->process(new TransactionDetails(100, 'X'), new CardDetails('5123456789012346', '05/29'));
+})->throws(UnexpectedResponseException::class, 'not JSON');
+
+it('does not read a transaction with no response code as a decline', function () {
+    Http::fake([BASE.'txns' => Http::response(['txnNumber' => '1'])]);
+
+    MerchantSuite::transactions()->process(new TransactionDetails(100, 'X'), new CardDetails('5123456789012346', '05/29'));
+})->throws(UnexpectedResponseException::class, 'response code');
+
+it('treats 403 as an authentication problem', function () {
+    Http::fake([BASE.'*' => Http::response('', 403)]);
+
+    MerchantSuite::transactions()->find('1');
+})->throws(AuthenticationException::class);
+
+it('stops paging if the api repeats a cursor', function () {
+    Http::fake([BASE.'txns/search' => Http::response([
+        'resultCount' => 1,
+        'continueFrom' => 'same',
+        'transactions' => [ms_fixture('txn-approved')],
+    ])]);
+
+    expect(MerchantSuite::transactions()->cursor()->count())->toBe(2);
+    Http::assertSentCount(2);
+});
+
+it('rejects a page size below one', function () {
+    MerchantSuite::transactions()->search(perPage: 0);
+})->throws(InvalidArgumentException::class);
 
 it('pages through search results lazily', function () {
     Http::fake([BASE.'txns/search' => Http::sequence()

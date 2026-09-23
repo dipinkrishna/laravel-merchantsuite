@@ -52,8 +52,6 @@ final readonly class Transaction
             $p = Payload::of($inner);
         }
 
-        $processed = $p->str('processedDateTime');
-
         return new self(
             txnNumber: $p->str('txnNumber'),
             receiptNumber: $p->str('receiptNumber'),
@@ -70,7 +68,7 @@ final readonly class Transaction
             merchantReference: $p->str('merchantReference'),
             originalTxnNumber: $p->str('originalTxnNumber'),
             paymentMethod: PaymentMethod::fromArray($p->arr('paymentMethod')),
-            processedAt: $processed === null ? null : CarbonImmutable::parse($processed),
+            processedAt: $p->date('processedDateTime'),
             settlementDate: $p->str('settlementDate'),
             authoriseId: $p->str('authoriseId'),
             isTest: $p->bool('isTestTxn') ?? false,

@@ -50,14 +50,9 @@ final readonly class Token
             emailAddress: $p->str('emailAddress'),
             card: MaskedCard::fromArray($method->arr('card')),
             bank: $method->strings('bank'),
-            createdAt: self::date($p->str('createdDateTime')),
-            updatedAt: self::date($p->str('updatedDateTime')),
+            createdAt: $p->date('createdDateTime'),
+            updatedAt: $p->date('updatedDateTime'),
             raw: $p->all(),
         );
-    }
-
-    private static function date(?string $value): ?CarbonImmutable
-    {
-        return $value === null ? null : CarbonImmutable::parse($value);
     }
 }

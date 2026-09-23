@@ -5,11 +5,15 @@ namespace DK\MerchantSuite\Http;
 use DK\MerchantSuite\Exceptions\ApiException;
 use DK\MerchantSuite\Exceptions\ConfigurationException;
 use DK\MerchantSuite\Exceptions\ConnectionException;
+use DK\MerchantSuite\Exceptions\UnexpectedResponseException;
 use DK\MerchantSuite\Support\Payload;
+use GuzzleHttp\Exception\TransferException;
 use Illuminate\Http\Client\ConnectionException as HttpConnectionException;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\Client\Response;
+use Throwable;
 
 /**
  * Thin wrapper over Laravel's HTTP client.
@@ -74,15 +78,18 @@ class Client
         $request = $this->request();
 
         // Only GET is safe to repeat. Retrying a POST /txns after a timeout
-        // can charge the card twice.
+        // can charge the card twice. retry() counts attempts, not retries.
         if ($method === 'GET' && ($retries = $this->config->int('get_retries') ?? 0) > 0) {
-            $request->retry($retries, 250, fn ($e) => $e instanceof HttpConnectionException, throw: false);
+            $request->retry($retries + 1, 250, fn (Throwable $e) => self::retryable($e), throw: false);
         }
 
         try {
             /** @var Response $response */
             $response = $request->send($method, ltrim($path, '/'), $body === null ? [] : ['json' => (object) $body]);
-        } catch (HttpConnectionException $e) {
+        } catch (HttpConnectionException|TransferException $e) {
+            // Older Laravel 12 releases only wrap Guzzle's ConnectException,
+            // so a connection dropped mid-request can arrive as a raw
+            // Guzzle TransferException.
             throw new ConnectionException(
                 "Could not reach MerchantSuite ({$method} {$path}).".($method === 'GET' ? '' : ' The outcome is unknown; look the transaction up before retrying.'),
                 $method,
@@ -91,15 +98,28 @@ class Client
             );
         }
 
-        if ($response->failed()) {
-            $json = $response->json();
+        $json = $response->json();
 
+        if ($response->failed()) {
             throw ApiException::fromResponse($response->status(), is_array($json) ? $json : null);
         }
 
-        $json = $response->json();
+        // An empty body is normal (201 on attach calls, DELETE). Anything
+        // else that is not JSON is a proxy or maintenance page, not an answer.
+        if ($json === null && ! in_array(trim($response->body()), ['', 'null'], true)) {
+            throw new UnexpectedResponseException(
+                "MerchantSuite returned HTTP {$response->status()} with a body that is not JSON ({$method} {$path}).",
+                $response->status(),
+            );
+        }
 
         return is_array($json) ? $json : [];
+    }
+
+    private static function retryable(Throwable $e): bool
+    {
+        return $e instanceof HttpConnectionException
+            || ($e instanceof RequestException && in_array($e->response->status(), [502, 503, 504], true));
     }
 
     private function request(): PendingRequest

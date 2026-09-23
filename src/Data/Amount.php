@@ -24,7 +24,12 @@ final class Amount
             throw new InvalidArgumentException("\"{$amount}\" has more than {$decimals} decimal places.");
         }
 
-        return (int) ($m[1].str_pad($fraction, $decimals, '0'));
+        $minor = ltrim($m[1].str_pad($fraction, $decimals, '0'), '0') ?: '0';
+        if (strlen($minor) > 18) {
+            throw new InvalidArgumentException("\"{$amount}\" is too large.");
+        }
+
+        return (int) $minor;
     }
 
     public static function toDecimal(int $minor, int $decimals = 2): string

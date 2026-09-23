@@ -4,6 +4,7 @@ use DK\MerchantSuite\Data\BankAccount;
 use DK\MerchantSuite\Data\CardDetails;
 use DK\MerchantSuite\Data\TokenDetails;
 use DK\MerchantSuite\Exceptions\NotFoundException;
+use DK\MerchantSuite\Exceptions\UnexpectedResponseException;
 use DK\MerchantSuite\Facades\MerchantSuite;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
@@ -88,3 +89,9 @@ it('searches tokens', function () {
 
     expect($page)->toHaveCount(1)->and($page->hasMore())->toBeFalse()->and($page->items[0]->crn1)->toBe('CUST-42');
 });
+
+it('does not accept a token record without a token', function () {
+    Http::fake([TOKEN_BASE.'tokens/x' => Http::response(['crn1' => 'CUST-42'])]);
+
+    MerchantSuite::tokens()->find('x');
+})->throws(UnexpectedResponseException::class);

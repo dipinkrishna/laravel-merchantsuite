@@ -2,6 +2,9 @@
 
 namespace DK\MerchantSuite\Support;
 
+use Carbon\CarbonImmutable;
+use Carbon\Exceptions\InvalidFormatException;
+
 /**
  * Typed reads from a decoded JSON response. The gateway's JSON is untrusted
  * input: a field can be missing, null, or a different scalar type than the
@@ -35,7 +38,25 @@ final readonly class Payload
     {
         $value = $this->data[$key] ?? null;
 
-        return is_int($value) || (is_string($value) && preg_match('/^-?\d+$/', $value)) ? (int) $value : null;
+        if (is_float($value) && floor($value) === $value && abs($value) < PHP_INT_MAX) {
+            return (int) $value;
+        }
+
+        return is_int($value) || (is_string($value) && preg_match('/^-?\d{1,18}$/', $value)) ? (int) $value : null;
+    }
+
+    public function date(string $key): ?CarbonImmutable
+    {
+        $value = $this->str($key);
+        if ($value === null) {
+            return null;
+        }
+
+        try {
+            return CarbonImmutable::parse($value);
+        } catch (InvalidFormatException) {
+            return null;
+        }
     }
 
     public function bool(string $key): ?bool

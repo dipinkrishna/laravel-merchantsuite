@@ -37,3 +37,22 @@ it('survives a response full of nulls', function () {
 
     expect($txn->txnNumber)->toBeNull()->and($txn->amount)->toBe(0)->and($txn->paymentMethod)->toBeNull()->and($txn->isApproved())->toBeFalse();
 });
+
+it('reads whole-number floats as integers', function () {
+    $p = Payload::of(['a' => 1999.0, 'b' => 19.99, 'c' => '99999999999999999999']);
+
+    expect($p->int('a'))->toBe(1999)->and($p->int('b'))->toBeNull()->and($p->int('c'))->toBeNull();
+});
+
+it('does not let one bad field sink the whole response', function () {
+    $txn = Transaction::fromArray([
+        'txnNumber' => '1',
+        'responseCode' => '0',
+        'processedDateTime' => 'not a date',
+        'paymentMethod' => ['card' => ['number' => '512345...346', 'expiry' => ['month' => '13', 'year' => 'xx']]],
+    ]);
+
+    expect($txn->processedAt)->toBeNull()
+        ->and($txn->paymentMethod->card->expiry)->toBeNull()
+        ->and($txn->paymentMethod->card->number)->toBe('512345...346');
+});

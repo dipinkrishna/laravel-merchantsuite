@@ -5,6 +5,7 @@ namespace DK\MerchantSuite\Webhooks;
 use DK\MerchantSuite\Data\Token;
 use DK\MerchantSuite\Data\Transaction;
 use DK\MerchantSuite\Exceptions\InvalidWebhookException;
+use DK\MerchantSuite\Exceptions\NotFoundException;
 use DK\MerchantSuite\Resources\Tokens;
 use DK\MerchantSuite\Resources\Transactions;
 use Illuminate\Http\Request;
@@ -35,9 +36,16 @@ class Webhooks
 
         $event = $this->parse($request);
 
-        $data = $event->data instanceof Transaction
-            ? $this->transactions->find((string) $event->data->txnNumber)
-            : $this->tokens->find($event->data->token);
+        try {
+            $data = $event->data instanceof Transaction
+                ? $this->transactions->find((string) $event->data->txnNumber)
+                : $this->tokens->find($event->data->token);
+        } catch (NotFoundException) {
+            // A made-up txnNumber or token: the request did not come from
+            // MerchantSuite. Answer 400 rather than 500, which the sender
+            // would retry for 24 hours.
+            throw new InvalidWebhookException('Webhook refers to a record MerchantSuite does not have.');
+        }
 
         return new WebhookEvent($event->type, $data, verified: true);
     }

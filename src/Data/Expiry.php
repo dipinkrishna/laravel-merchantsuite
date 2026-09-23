@@ -42,15 +42,22 @@ final readonly class Expiry
     }
 
     /**
-     * @param  array{month?: string|int|null, year?: string|int|null}|null  $data
+     * Lenient on purpose: this reads gateway responses, and one odd expiry
+     * should not make the whole transaction unreadable.
+     *
+     * @param  array<string, string>|null  $data
      */
     public static function fromArray(?array $data): ?self
     {
-        if (! isset($data['month'], $data['year']) || $data['month'] === '' || $data['year'] === '') {
+        if (! isset($data['month'], $data['year'])) {
             return null;
         }
 
-        return new self($data['month'], $data['year']);
+        try {
+            return new self($data['month'], $data['year']);
+        } catch (InvalidArgumentException) {
+            return null;
+        }
     }
 
     /**

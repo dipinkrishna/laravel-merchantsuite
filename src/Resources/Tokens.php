@@ -7,7 +7,6 @@ use DK\MerchantSuite\Data\CardDetails;
 use DK\MerchantSuite\Data\SearchResults;
 use DK\MerchantSuite\Data\Token;
 use DK\MerchantSuite\Data\TokenDetails;
-use DK\MerchantSuite\Support\Payload;
 use Illuminate\Support\LazyCollection;
 
 class Tokens extends Resource
@@ -18,7 +17,7 @@ class Tokens extends Resource
      */
     public function add(TokenDetails $details, CardDetails|BankAccount $method): Token
     {
-        return Token::fromArray($this->client->post('tokens', [
+        return self::tokenFrom($this->client->post('tokens', [
             ...$details->toArray(),
             ...self::method($method),
         ]));
@@ -26,12 +25,12 @@ class Tokens extends Resource
 
     public function find(string $token): Token
     {
-        return Token::fromArray($this->client->get('tokens/'.self::segment($token)));
+        return self::tokenFrom($this->client->get('tokens/'.self::segment($token)));
     }
 
     public function update(string $token, TokenDetails $details, CardDetails|BankAccount $method): Token
     {
-        return Token::fromArray($this->client->put('tokens/'.self::segment($token), [
+        return self::tokenFrom($this->client->put('tokens/'.self::segment($token), [
             ...$details->toArray(),
             ...self::method($method),
         ]));
@@ -47,7 +46,7 @@ class Tokens extends Resource
      */
     public function fromTransaction(string $txnNumber): Token
     {
-        return Token::fromArray($this->client->post('tokens/txn/'.self::segment($txnNumber)));
+        return self::tokenFrom($this->client->post('tokens/txn/'.self::segment($txnNumber)));
     }
 
     /**
@@ -66,9 +65,9 @@ class Tokens extends Resource
 
     public function processAuthkey(string $authkey, ?string $webhookUrl = null): Token
     {
-        return Token::fromArray($this->client->post(
+        return self::tokenFrom($this->client->post(
             'tokens/authkeys/'.self::segment($authkey).'/process',
-            array_filter(['webhook' => $webhookUrl ? ['url' => $webhookUrl] : null]),
+            array_filter(['webhook' => self::webhook($webhookUrl)]),
         ));
     }
 
@@ -78,19 +77,7 @@ class Tokens extends Resource
      */
     public function search(array $filters = [], int $perPage = 100, ?string $continueFrom = null): SearchResults
     {
-        $response = $this->client->post('tokens/search', array_filter([
-            ...$filters,
-            'numberOfRecords' => $perPage,
-            'continueFrom' => $continueFrom,
-        ], fn ($v) => $v !== null));
-
-        $p = Payload::of($response);
-
-        return new SearchResults(
-            array_map(Token::fromArray(...), $p->list('tokens')),
-            $p->str('continueFrom'),
-            $p->int('resultCount') ?? 0,
-        );
+        return $this->searchPage('tokens/search', 'tokens', Token::fromArray(...), $filters, $perPage, $continueFrom);
     }
 
     /**
@@ -99,17 +86,7 @@ class Tokens extends Resource
      */
     public function cursor(array $filters = [], int $perPage = 100): LazyCollection
     {
-        return LazyCollection::make(function () use ($filters, $perPage) {
-            $continueFrom = null;
-            do {
-                $page = $this->search($filters, $perPage, $continueFrom);
-                // Plain yields: `yield from` would reuse each page's 0..n keys.
-                foreach ($page->items as $item) {
-                    yield $item;
-                }
-                $continueFrom = $page->continueFrom;
-            } while ($page->hasMore() && $page->count() > 0);
-        });
+        return self::walk(fn (?string $continueFrom) => $this->search($filters, $perPage, $continueFrom));
     }
 
     /**

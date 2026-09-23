@@ -21,6 +21,14 @@ it('rejects bad amounts', function (string $in) {
     Amount::fromDecimal($in);
 })->with(['-1', '1.234', 'abc', '1,000.00', ''])->throws(InvalidArgumentException::class);
 
+it('refuses amounts that would overflow an integer', function () {
+    Amount::fromDecimal('99999999999999999999');
+})->throws(InvalidArgumentException::class, 'too large');
+
+it('accepts leading zeros', function () {
+    expect(Amount::fromDecimal('007.50'))->toBe(750)->and(Amount::fromDecimal('0.00'))->toBe(0);
+});
+
 it('formats cents back to a decimal string', function () {
     expect(Amount::toDecimal(1999))->toBe('19.99')
         ->and(Amount::toDecimal(5))->toBe('0.05')

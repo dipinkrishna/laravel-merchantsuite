@@ -30,8 +30,15 @@ it('re-fetches tokens', function () {
     $event = MerchantSuite::webhooks()->verify(webhookRequest(['type' => 'token', 'data' => ms_fixture('token')]));
 
     expect($event->data)->toBeInstanceOf(Token::class)
+        ->and($event->isToken())->toBeTrue()
         ->and($event->idempotencyKey())->toStartWith('token:9999000011112222:2026-09-23');
 });
+
+it('rejects a webhook for a transaction that does not exist', function () {
+    Http::fake(['https://www.merchantsuite.com/rest/v5/txns/*' => Http::response(['code' => 'NotFound'], 404)]);
+
+    MerchantSuite::webhooks()->verify(webhookRequest(['type' => 'transaction', 'data' => ['txnNumber' => 'made-up']]));
+})->throws(InvalidWebhookException::class, 'does not have');
 
 it('parses without calling the api', function () {
     $event = MerchantSuite::webhooks()->parse(webhookRequest(['type' => 'transaction', 'data' => ms_fixture('txn-approved')]));

@@ -9,7 +9,6 @@ use DK\MerchantSuite\Data\TransactionDetails;
 use DK\MerchantSuite\Enums\Action;
 use DK\MerchantSuite\Enums\SubType;
 use DK\MerchantSuite\Enums\TransactionType;
-use DK\MerchantSuite\Support\Payload;
 use Illuminate\Support\LazyCollection;
 
 class Transactions extends Resource
@@ -22,7 +21,7 @@ class Transactions extends Resource
      */
     public function process(TransactionDetails $details, CardDetails $card): Transaction
     {
-        return Transaction::fromArray($this->client->post('txns', [
+        return self::transactionFrom($this->client->post('txns', [
             ...$details->toTwoPartyArray($this->defaults),
             'cardDetails' => $card->toArray(),
         ]));
@@ -54,7 +53,7 @@ class Transactions extends Resource
 
     public function find(string $txnNumber): Transaction
     {
-        return Transaction::fromArray($this->client->get('txns/'.self::segment($txnNumber)));
+        return self::transactionFrom($this->client->get('txns/'.self::segment($txnNumber)));
     }
 
     /**
@@ -63,7 +62,7 @@ class Transactions extends Resource
      */
     public function result(string $resultKey): Transaction
     {
-        return Transaction::fromArray($this->client->get('txns/resultkeys/'.self::segment($resultKey)));
+        return self::transactionFrom($this->client->get('txns/resultkeys/'.self::segment($resultKey)));
     }
 
     /**
@@ -76,19 +75,7 @@ class Transactions extends Resource
      */
     public function search(array $filters = [], int $perPage = 100, ?string $continueFrom = null): SearchResults
     {
-        $response = $this->client->post('txns/search', array_filter([
-            ...$filters,
-            'numberOfRecords' => $perPage,
-            'continueFrom' => $continueFrom,
-        ], fn ($v) => $v !== null));
-
-        $p = Payload::of($response);
-
-        return new SearchResults(
-            array_map(Transaction::fromArray(...), $p->list('transactions')),
-            $p->str('continueFrom'),
-            $p->int('resultCount') ?? 0,
-        );
+        return $this->searchPage('txns/search', 'transactions', Transaction::fromArray(...), $filters, $perPage, $continueFrom);
     }
 
     /**
@@ -99,17 +86,7 @@ class Transactions extends Resource
      */
     public function cursor(array $filters = [], int $perPage = 100): LazyCollection
     {
-        return LazyCollection::make(function () use ($filters, $perPage) {
-            $continueFrom = null;
-            do {
-                $page = $this->search($filters, $perPage, $continueFrom);
-                // Plain yields: `yield from` would reuse each page's 0..n keys.
-                foreach ($page->items as $item) {
-                    yield $item;
-                }
-                $continueFrom = $page->continueFrom;
-            } while ($page->hasMore() && $page->count() > 0);
-        });
+        return self::walk(fn (?string $continueFrom) => $this->search($filters, $perPage, $continueFrom));
     }
 
     private function followUp(Action $action, string $txnNumber, int $amount, string $crn1, ?string $currency, ?string $merchantReference): Transaction
@@ -125,6 +102,6 @@ class Transactions extends Resource
             originalTxnNumber: $txnNumber,
         );
 
-        return Transaction::fromArray($this->client->post('txns', $details->toTwoPartyArray($this->defaults)));
+        return self::transactionFrom($this->client->post('txns', $details->toTwoPartyArray($this->defaults)));
     }
 }

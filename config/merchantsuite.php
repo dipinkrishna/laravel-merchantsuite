@@ -49,8 +49,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | The gateway can take up to ~50 seconds to answer a slow bank, so keep the
-    | timeout above that. Only GET requests are retried: a POST that timed out
-    | may still have charged the card.
+    | timeout above that. Only GET requests are retried (on connection errors
+    | and 502/503/504), get_retries times after the first attempt: a POST that
+    | timed out may still have charged the card.
     |
     */
 

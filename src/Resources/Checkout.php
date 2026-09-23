@@ -6,6 +6,7 @@ use DK\MerchantSuite\Data\Expiry;
 use DK\MerchantSuite\Data\PaymentMethod;
 use DK\MerchantSuite\Data\Transaction;
 use DK\MerchantSuite\Data\TransactionDetails;
+use InvalidArgumentException;
 
 /**
  * The AuthKey payment flow. Card numbers go from the browser straight to
@@ -62,10 +63,14 @@ class Checkout extends Resource
      */
     public function process(string $authkey, ?string $webhookUrl = null, bool|int|null $surcharge = null, bool $updateTokenExpiry = false): Transaction
     {
-        return Transaction::fromArray($this->client->post(
+        if (is_int($surcharge) && $surcharge < 0) {
+            throw new InvalidArgumentException('Surcharge cannot be negative.');
+        }
+
+        return self::transactionFrom($this->client->post(
             'txns/authkeys/'.self::segment($authkey).'/process',
             array_filter([
-                'webhook' => $webhookUrl ? ['url' => $webhookUrl] : null,
+                'webhook' => self::webhook($webhookUrl),
                 'surcharge' => match (true) {
                     $surcharge === true => ['calculate' => true],
                     is_int($surcharge) => ['amount' => $surcharge],

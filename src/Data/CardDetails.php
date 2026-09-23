@@ -2,7 +2,9 @@
 
 namespace DK\MerchantSuite\Data;
 
+use DK\MerchantSuite\Support\Secrets;
 use InvalidArgumentException;
+use LogicException;
 use SensitiveParameter;
 
 /**
@@ -10,19 +12,21 @@ use SensitiveParameter;
  * Prefer the AuthKey checkout with MerchantSuite's iframe fields, which
  * keeps card numbers off your servers entirely.
  *
- * The number and CVN are hidden from var_dump(), print_r(), serialisation
- * and stack traces.
+ * The number and CVN are not properties of this object, so they do not
+ * show up in dd(), dump(), var_dump(), var_export(), print_r(), Laravel's
+ * error page, an (array) cast or json_encode(). The constructor arguments
+ * are redacted from stack traces, and the object refuses to serialise.
  */
 final class CardDetails
 {
     public readonly Expiry $expiry;
 
-    private readonly string $number;
+    private readonly string $masked;
 
     public function __construct(
         #[SensitiveParameter] string $number,
         Expiry|string $expiry,
-        #[SensitiveParameter] private readonly ?string $cvn = null,
+        #[SensitiveParameter] ?string $cvn = null,
         public readonly ?string $name = null,
     ) {
         $digits = preg_replace('/[\s-]/', '', $number) ?? '';
@@ -33,13 +37,16 @@ final class CardDetails
             throw new InvalidArgumentException('CVN must be 3 or 4 digits.');
         }
 
-        $this->number = $digits;
         $this->expiry = $expiry instanceof Expiry ? $expiry : Expiry::fromString($expiry);
+        $this->masked = substr($digits, 0, 6).'...'.substr($digits, -3);
+
+        Secrets::put($this, ['number' => $digits, 'cvn' => $cvn]);
     }
 
+    /** e.g. "512345...346" */
     public function masked(): string
     {
-        return substr($this->number, 0, 6).str_repeat('.', 3).substr($this->number, -3);
+        return $this->masked;
     }
 
     /**
@@ -48,28 +55,28 @@ final class CardDetails
     public function toArray(bool $withCvn = true): array
     {
         return array_filter([
-            'number' => $this->number,
+            'number' => Secrets::get($this, 'number'),
             'expiry' => $this->expiry->toArray(),
-            'cvn' => $withCvn ? $this->cvn : null,
+            'cvn' => $withCvn ? Secrets::get($this, 'cvn') : null,
             'name' => $this->name,
         ], fn ($v) => $v !== null);
     }
 
-    /**
-     * @return array<string, mixed>
-     */
-    public function __debugInfo(): array
+    public function __clone(): void
     {
-        return [
-            'number' => $this->masked(),
-            'expiry' => (string) $this->expiry,
-            'cvn' => $this->cvn === null ? null : '***',
-            'name' => $this->name,
-        ];
+        throw new LogicException('CardDetails cannot be cloned.');
     }
 
     public function __serialize(): array
     {
-        throw new \LogicException('CardDetails cannot be serialised.');
+        throw new LogicException('CardDetails cannot be serialised.');
+    }
+
+    /**
+     * @param  array<array-key, mixed>  $data
+     */
+    public function __unserialize(array $data): void
+    {
+        throw new LogicException('CardDetails cannot be unserialised.');
     }
 }

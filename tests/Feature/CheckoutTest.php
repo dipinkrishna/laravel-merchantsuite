@@ -86,3 +86,11 @@ it('does not send an empty card when attaching a token', function () {
 
     Http::assertSent(fn (Request $r) => $r->data() === ['token' => 't']);
 });
+
+it('rejects webhook urls MerchantSuite will not call', function (string $url) {
+    MerchantSuite::checkout()->process('ak', webhookUrl: $url);
+})->with(['http://shop.test/hook', 'https://shop.test:8443/hook', 'shop.test/hook'])->throws(InvalidArgumentException::class, 'https');
+
+it('rejects a negative surcharge', function () {
+    MerchantSuite::checkout()->process('ak', surcharge: -1);
+})->throws(InvalidArgumentException::class);

@@ -6,8 +6,9 @@
 A Laravel client for the [MerchantSuite](https://www.merchantsuite.com/developerzone/v5/) (Linkly) payments API v5: card payments, refunds and pre-auths, stored card tokens, the PCI-friendly AuthKey checkout, and webhooks.
 
 - Typed request and response objects, integer amounts, enums for every API code
-- Card numbers kept out of logs, dumps, serialisation and stack traces
+- Card numbers kept out of `dd()`, error pages, logs, serialisation and stack traces
 - Declines are results, not exceptions; gateway errors are typed exceptions with field-level detail
+- A proxy or maintenance page is never mistaken for a declined card
 - Payments are never retried automatically, so a timeout cannot charge a card twice
 - Webhooks are verified by re-fetching from the API, since MerchantSuite does not sign them
 - Checked weekly against MerchantSuite's published OpenAPI spec
@@ -221,6 +222,10 @@ Route::post('/webhooks/merchantsuite', function (Request $request) {
 })->withoutMiddleware(VerifyCsrfToken::class);
 ```
 
+A webhook for a transaction or token MerchantSuite doesn't have also throws `InvalidWebhookException`, so a forged request gets a 400 rather than a 500.
+
+Webhook URLs passed to `process()` must be `https://` on port 443, the only thing MerchantSuite will call; anything else throws before the request is sent.
+
 Set `MERCHANTSUITE_WEBHOOK_VERIFY_IP=true` to also reject requests that don't come from MerchantSuite's published addresses. Only turn it on if `$request->ip()` returns real client IPs (TrustProxies configured behind a load balancer or CDN).
 
 ## 2-party (card data through your server)
@@ -236,7 +241,7 @@ $txn = MerchantSuite::transactions()->process(
 );
 ```
 
-`CardDetails` masks the number in `var_dump`/`print_r`, refuses to serialise (so it cannot land in a queue payload or cache), and is marked `#[SensitiveParameter]` so the number is redacted from stack traces.
+The number and CVN are not stored as properties of `CardDetails`, so `dd()`, `dump()`, Laravel's error page, Telescope, `var_export()` and `json_encode()` only ever see the masked number (`512345...346`, also `$card->masked()`). The object refuses to be cloned or serialised (so it cannot land in a queue payload or cache), and its constructor arguments are marked `#[SensitiveParameter]`, so they are redacted from stack traces. `BankAccount` works the same way.
 
 ## Errors
 
@@ -248,21 +253,22 @@ $txn = MerchantSuite::transactions()->process(
 | Unknown txn/token | `NotFoundException` |
 | Other gateway errors | `ApiException` with `->status`, `->errorCode` (enum), `->details` |
 | Timeout / network | `ConnectionException` |
+| 2xx that isn't a real answer (HTML page, transaction with no response code) | `UnexpectedResponseException` |
 | Missing config | `ConfigurationException` |
 
 All of them extend `MerchantSuiteException`.
 
-**A `ConnectionException` on a payment means the outcome is unknown.** The gateway may have charged the card before the connection dropped. `$e->outcomeUnknown()` is true for anything but a GET. Search by your `crn1` before trying again:
+**A `ConnectionException` or `UnexpectedResponseException` on a payment means the outcome is unknown.** The gateway may have charged the card before the connection dropped. `ConnectionException::outcomeUnknown()` is true for anything but a GET. Search by your `crn1` before trying again:
 
 ```php
 try {
     $txn = MerchantSuite::chargeToken($token, $details);
-} catch (ConnectionException $e) {
+} catch (ConnectionException|UnexpectedResponseException $e) {
     $txn = MerchantSuite::transactions()->search(['crn1' => $details->crn1])->items[0] ?? null;
 }
 ```
 
-Lookups (GET) are retried twice on connection errors. Nothing else is retried.
+Lookups (GET) are retried up to twice on connection errors and 502/503/504. Nothing else is retried.
 
 ## Testing your app
 

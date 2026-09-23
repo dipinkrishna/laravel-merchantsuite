@@ -45,7 +45,7 @@ class ApiException extends MerchantSuiteException
         }
 
         $class = match (true) {
-            $status === 401,
+            $status === 401, $status === 403,
             in_array($code, [ErrorCode::InvalidCredentials, ErrorCode::NotAuthenticated, ErrorCode::InvalidPermissions], true) => AuthenticationException::class,
             $code === ErrorCode::InvalidFields, $code === ErrorCode::InvalidPayload => ValidationException::class,
             $status === 404, $code === ErrorCode::NotFound => NotFoundException::class,
