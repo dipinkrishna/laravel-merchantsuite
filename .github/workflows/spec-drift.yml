@@ -6,6 +6,12 @@ name: spec drift
 on:
   schedule:
     - cron: '0 3 * * 1'
+  push:
+    branches: [master]
+    paths:
+      - 'src/**'
+      - 'scripts/check-spec.php'
+      - '.github/workflows/spec-drift.yml'
   workflow_dispatch:
 
 jobs:
